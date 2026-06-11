@@ -1,1 +1,5 @@
-fastapi , uvicorn , requests , pymongo
+fastapi
+uvicorn
+requests
+pymongo
+pillow
