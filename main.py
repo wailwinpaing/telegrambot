@@ -8,11 +8,11 @@ app = FastAPI()
 
 # ⚠️ ကိုယ့်ရဲ့ အချက်အလတ်များကို ပြောင်းလဲရန်
 BOT_TOKEN = "8892263550:AAHjR-VqRAWjNj-SBSpTVhp79pEF2eCD7L0"
-TELEGRAM_API = f"https://api.telegram.org/bot{8892263550:AAHjR-VqRAWjNj-SBSpTVhp79pEF2eCD7L0}"
+TELEGRAM_API = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 # Gemini API Key ထည့်ရန်
 GEMINI_API_KEY = "AQ.Ab8RN6IbLaPqRS6fqenJsWTuK8qEii4S6SJh065VbVKsMPpxSg"
-genai.configure(api_key=AQ.Ab8RN6IbLaPqRS6fqenJsWTuK8qEii4S6SJh065VbVKsMPpxSg)
+ggenai.configure(api_key=GEMINI_API_KEY)
 
 # MongoDB Atlas မှရသော URL ကို ထည့်ရန်
 MONGO_URI = "mongodb+srv://gwai5733_db_user:<jvSP2KPXCzlikHmy>@cluster0.te6sbon.mongodb.net/?appName=Cluster0"
@@ -259,7 +259,7 @@ model = genai.GenerativeModel(
 
 # Telegram ဆီ စာပြန်ပို့ပေးမယ့် Function
 def send_message(chat_id, text):
-    url = f"{8892263550:AAHjR-VqRAWjNj-SBSpTVhp79pEF2eCD7L0}/sendMessage"
+    url = f"{TELEGRAM_API}/sendMessage"
     payload = {"chat_id": chat_id, "text": text}
     try:
         requests.post(url, json=payload)
