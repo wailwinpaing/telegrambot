@@ -259,7 +259,7 @@ model = genai.GenerativeModel(
 
 # Telegram ဆီ စာပြန်ပို့ပေးမယ့် Function
 def send_message(chat_id, text):
-    url = f"{TELEGRAM_API}/sendMessage"
+    url = f"{8892263550:AAHjR-VqRAWjNj-SBSpTVhp79pEF2eCD7L0}/sendMessage"
     payload = {"chat_id": chat_id, "text": text}
     try:
         requests.post(url, json=payload)
