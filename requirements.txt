@@ -3,3 +3,4 @@ uvicorn
 requests
 pymongo
 pillow
+google-generativeai
