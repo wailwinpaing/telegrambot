@@ -1,26 +1,19 @@
-from fastapi import FastAPI, Request
-import requests
-from pymongo import MongoClient
-import google.generativeai as genai
 import os
+from fastapi import FastAPI, Request
+import telebot
+from google import genai
 
 app = FastAPI()
 
-# ⚠️ ကိုယ့်ရဲ့ အချက်အလတ်များကို ပြောင်းလဲရန်
-BOT_TOKEN = "8892263550:AAHjR-VqRAWjNj-SBSpTVhp79pEF2eCD7L0"
-TELEGRAM_API = f"https://api.telegram.org/bot{BOT_TOKEN}"
+# 🔑 Environment Variables မှ Token များယူခြင်း
+TOKEN = os.getenv("TELEGRAM_TOKEN", "8892263550:AAHjR-VqRAWjNj-SBSpTVhp79pEF2eCD7L0")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AQ.Ab8RN6IbLaPqRS6fqenJsWTuK8qEii4S6SJh065VbVKsMPpxSg")
 
-# Gemini API Key ထည့်ရန်
-GEMINI_API_KEY = "AQ.Ab8RN6IbLaPqRS6fqenJsWTuK8qEii4S6SJh065VbVKsMPpxSg"
-genai.configure(api_key=GEMINI_API_KEY)
+# Library များဆောက်ခြင်း
+bot = telebot.TeleBot(TOKEN)
+ai_client = genai.Client(api_key=GEMINI_API_KEY) # Gemini SDK အသစ်စနစ်
 
-# MongoDB Atlas မှရသော URL ကို ထည့်ရန်
-MONGO_URI = "mongodb+srv://gwai5733_db_user:<jvSP2KPXCzlikHmy>@cluster0.te6sbon.mongodb.net/?appName=Cluster0"
-client = MongoClient(MONGO_URI)
-db = client["telegram_bot_db"]
-users_collection = db["users"]
-
-# TrueMoney Data နှင့် AI လမ်းညွှန်ချက်များ
+# --- TrueMoney Data & AI Rules ---
 SYSTEM_INSTRUCTION = """
 သင်သည် ထိုင်းနိုင်ငံရှိ မြန်မာနိုင်ငံသားများကို TrueMoney Wallet အသုံးပြုပုံနှင့် ပတ်သက်၍ ကူညီပေးရမည့် အမျိုးသမီး အထောက်အပံ့ပေးသူ (Female Assistant) ဖြစ်သည်။
 အသုံးပြုသူများကို အောက်ပါအတိုင်း တိကျသော အဆင့်ဆင့်လမ်းညွှန်ချက်များဖြင့် မြန်မာဘာသာဖြင့် ယဉ်ကျေးပျူငှာစွာ ဖြေကြားပေးပါ -
@@ -186,7 +179,7 @@ Google Play Store အတွက်:
 ၅။ ငွေပမာဏ (အနည်းဆုံး ၁ ဘတ်) ကို ရိုက်ထည့်ပါ။
 ၆။ စည်းကမ်းချက်များကို သဘောတူပြီး “Transfer to Bank” ကို နှိပ်ပါ။
 ၇။ 6-digit PIN ကို ရိုက်ထည့်ပါ။
-မှတ်ချက် - ဝန်ဆောင်ခ ၂၀ ဘတ် ကျသင့်မည်ဖြစ်ပြီး ပုံမှန်အားဖြင့် ၂ နာရီအတွင်း ငွေဝင်ပါမည်။ ဘဏ်အကောင့်ပိုင်ရှင်အမည်ကို ကြိုတင်ပြသနိုင်ခြင်းမရှိသောကြောင့် အကောင့်နံပါတ်ကို သေချာစစ်ဆေးပါ။
+မှတ်ချက် - ဝန်ဆောင်ခ ၂၀ ဘတ် ကျသင့်မည်ဖြစ်ပြီး ပုံမှန်အားဖြင့် ၂ နာရီအတွင်း ငွေဝင်ပါမည်။ ဘဏ်အကောင့်ပိုင်ရှင်အမည်ကို ကြိုတင်ပြသနိုင်ခြင်းမရှိသောကြောင့် အကောင့်နံပါတ်ကို သေჩာစစ်ဆေးပါ။
 
 ၂၃။ နိုင်ငံတကာ ငွေလွှဲခြင်း (Overseas Transfer):
 - TrueMoney သည် မြန်မာ၊ တရုတ် အပါအဝင် နိုင်ငံပေါင်း ၄၄ နိုင်ငံသို့ ငွေလွှဲနိုင်ပါသည်။
@@ -251,94 +244,29 @@ Referral Link: https://linktr.ee/paing_7
 မှတ်ချက် - အခက်အခဲရှိပါက TrueMoney Call Center 1240 ကို ခေါ်ဆိုပြီး နံပါတ် 4 ကို နှိပ်၍ မြန်မာစကားပြောဝန်ထမ်း Holiday မရှိဘဲ ဆက်သွယ်နိုင်ကြောင်း အမြဲထည့်ပြောပေးပါ ရှင့်။
 """
 
-# Gemini Model Setup
-model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash",
-    system_instruction=SYSTEM_INSTRUCTION
-)
-
-# Telegram ဆီ စာပြန်ပို့ပေးမယ့် Function
-def send_message(chat_id, text):
-    url = f"{TELEGRAM_API}/sendMessage"
-    payload = {"chat_id": chat_id, "text": text}
-    try:
-        requests.post(url, json=payload)
-    except Exception as e:
-        print(f"Error sending message: {e}")
-
-# AI ဆီက အဖြေတောင်းမယ့် Function
-def get_ai_response(user_text):
-    try:
-        response = model.generate_content(user_text)
-        return response.text if response.text else "တောင်းပန်ပါတယ် ရှင့်🤍"
-    except Exception as e:
-        print(f"Gemini Error: {e}")
-        return f"AI စနစ် ချို့ယွင်းချက်ဖြစ်ပေါ်နေပါသည်။ ({str(e)}) ရှင့်🤍"
-
 @app.get("/")
-def read_root():
-    return {"status": "TrueMoney AI Bot is running!"}
+def index():
+    return {"message": "Bot Server is Live!"}
 
+# 📩 Telegram က ပို့သမျှ Update များကို လက်ခံမည့်နေရာ
 @app.post("/webhook")
-async def telegram_webhook(request: Request):
-    data = await request.json()
+async def webhook(request: Request):
+    json_string = await request.body()
+    update = telebot.types.Update.de_json(json_string.decode('utf-8'))
+    bot.process_new_updates([update])
+    return {"status": "ok"}
 
-    # ဝင်လာတဲ့ Data ထဲမှာ Message ပါမပါ စစ်ဆေးခြင်း
-    if "message" in data:
-        message = data["message"]
-        chat_id = message["chat"]["id"]
-        user_id = message["from"]["id"]
-        username = message["from"].get("username", "Unknown User")
-
-        if "text" in message:
-            user_text = message["text"]
-
-            # 🔍 အဆင့် ၁ - Database ထဲမှာ အရင် အချက်အလတ် ရှိ၊ မရှိ ရှာဖွေခြင်း
-            user_data = users_collection.find_one({"user_id": user_id})
-
-            if user_text == "/start":
-                if not user_data:
-                    # User အသစ်ဖြစ်ပါက Database ထဲ စတင်သိမ်းဆည်းခြင်း
-                    new_user = {
-                        "user_id": user_id,
-                        "username": username,
-                        "chat_count": 1,
-                        "last_message": "/start"
-                    }
-                    users_collection.insert_one(new_user)
-
-                    welcome_reply = (
-                        f"မင်္ဂလာပါ {username} ရှင့်🤍\n"
-                        "ကျွန်မကတော့ ကိုဝေလွင်ပိုင်ရဲ့ AI Bot တစ်ကောင်ဖြစ်ပါတယ်ရှင့်\n"
-                        "ကျွန်မကိုဖန်တီးထားရတဲ့ အဓိက ရည်ရွယ်ချက်ကတော့ ထိုင်းနိုင်ငံရောက် မြန်မာနိုင်ငံသားများ "
-                        "True Money အကောင့်ဖွင့်ခြင်းနှင့် တခြားလိုအပ်သော အကြောင်းအရာများကို ပြန်လည်ဖြေကြား လမ်းညွှန်ပေးရန်ဖြစ်ပါတယ်ရှင့်🤍\n\n"
-                        "အောက်က မေးခွန်းတွေကိုလည်း တိုက်ရိုက် နှိပ်ပြီး မေးမြန်းနိုင်ပါတယ် ရှင့် -\n"
-                        "/CreateAccount (အကောင့်ဖွင့်မယ်)\n"
-                        "/ForgetPIN (PIN မေ့သွားတယ်)\n"
-                        "/RequireDocuments (ဘာစာရွက်စာတမ်းလိုအပ်လဲ)"
-                    )
-                else:
-                    welcome_reply = f"မင်္ဂလာပါ {username} 👋 ပြန်လည်ဆုံတွေ့ရတာ ဝမ်းသာပါတယ် ရှင့်🤍"
-
-                send_message(chat_id, welcome_reply)
-
-            else:
-                # 🔄 အဆင့် ၂ - အရင်အချက်အလက် ရှိခဲ့ရင် AI Response ယူပြီး Update လုပ်ခြင်း
-                if user_data:
-                    current_count = user_data.get("chat_count", 0) + 1
-
-                    # Gemini AI ဆီကနေ TrueMoney Data တွေနဲ့ အဖြေတောင်းခြင်း
-                    ai_reply = get_ai_response(user_text)
-
-                    # ဒေတာအသစ်ကို Database မှာ ထပ်မံ Update လုပ်ခြင်း
-                    users_collection.update_one(
-                        {"user_id": user_id},
-                        {"$set": {"chat_count": current_count, "last_message": user_text}}
-                    )
-
-                    # AI ရဲ့ အဖြေကို ပို့ပေးခြင်း
-                    send_message(chat_id, ai_reply)
-                else:
-                    send_message(chat_id, "ကျေးဇူးပြု၍ /start ကို အရင်နှိပ်ပေးပါ ရှင့်🤍")
-
-    return {"status": "success"}
+# 🤖 လူတစ်ယောက်က စာရိုက်လိုက်တိုင်း အလုပ်လုပ်မည့် Function
+@bot.message_handler(func=lambda message: True)
+def reply_to_user(message):
+    try:
+        # Gemini AI ဆီက အဖြေတောင်းခြင်း (System Instruction ထည့်သွင်းထားသည်)
+        response = ai_client.models.generate_content(
+            model='gemini-2.5-flash',
+            config={'system_instruction': SYSTEM_INSTRUCTION},
+            contents=message.text
+        )
+        # လူဆီ စာပြန်ပို့ခြင်း
+        bot.reply_to(message, response.text)
+    except Exception as e:
+        bot.reply_to(message, f"Error တစ်ခုတက်သွားပါတယ်ဗျာ- {str(e)}")
