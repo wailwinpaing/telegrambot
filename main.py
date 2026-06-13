@@ -1,12 +1,10 @@
 import os
-from fastapi import FastAPI, Request
 import telebot
 from google import genai
-from google.genai import types 
+from google.genai import types
+import time
 
-app = FastAPI()
-
-# --- Tokens Pasted ---
+# --- Tokens ---
 TOKEN = "8892263550:AAHjR-VqRAWjNj-SBSpTVhp79pEF2eCD7L0"
 GEMINI_API_KEY = "AQ.Ab8RN6K_BI_qBWwUS3MQQ8qyEMCpCEX9S5ZBE1JEat4HN478Qw"
 
@@ -35,17 +33,17 @@ SYSTEM_INSTRUCTION = """
 ၇. PIN Reset ပြုလုပ်ခြင်း အောင်မြင်သွားပါပြီ။
 
 ၂။ PIN Code မေ့သွားပါက လုပ်ဆောင်ရန် (Forget PIN):
-၁. “Forget PIN” ကို နှိပ်ပါ။
-၂. မိမိ၏ ID နံပါတ် (Passport) နှင့် SMS မှရရှိသော OTP ကို ရိုက်ထည့်ပါ။
-၃. PIN နံပါတ်အသစ်ကို ရိုက်ထည့်ပါ။
-၄. PIN နံပါတ်အသစ်ကို နောက်တစ်ကြိမ် ထပ်မံရိုက်ထည့်ပါ။
-၅. PIN Reset ပြုလုပ်ခြင်း အောင်မြင်သွားပါပြီ။
+၁။ “Forget PIN” ကို နှိပ်ပါ။
+၂။ မိမိ၏ ID နံပါတ် (Passport) နှင့် SMS မှရရှိသော OTP ကို ရိုက်ထည့်ပါ။
+၃။ PIN နံပါတ်အသစ်ကို ရိုက်ထည့်ပါ။
+၄။ PIN နံပါတ်အသစ်ကို နောက်တစ်ကြိမ် ထပ်မံရိုက်ထည့်ပါ။
+၅။ PIN Reset ပြုလုပ်ခြင်း အောင်မြင်သွားပါပြီ။
 
 ၃။ Touch ID / Face ID အသုံးပြုနည်း (Activate Touch ID):
-၁. “Account” ကို နှိပ်ပါ။
-၂. “Security and privacy” ကို နှိပ်ပါ။
-၃. “Fingerprint” (Android) သို့မဟုတ် “Face ID/Touch ID” (iOS) ကို နှိပ်ပါ။
-၄. အသက်သွင်းရန် (Activate ဖြစ်ရန်) PIN code ကို ရိုက်ထည့်ပါ။
+၁။ “Account” ကို နှိပ်ပါ။
+၂။ “Security and privacy” ကို နှိပ်ပါ။
+၃။ “Fingerprint” (Android) သို့မဟုတ် “Face ID/Touch ID” (iOS) ကို နှိပ်ပါ။
+၄။ အသက်သွင်းရန် (Activate ဖြစ်ရန်) PIN code ကို ရိုက်ထည့်ပါ။
 မှတ်ချက် - မိမိဖုန်း၏ Settings ထဲတွင် Fingerprint သို့မဟုတ် Face/Touch ID ကို အရင်ဆုံး အသက်သွင်းထားရန် လိုအပ်ပါသည်။
 
 ၄။ မည်သူမည်ဝါဖြစ်ကြောင်း အတည်ပြုခြင်း (Identity Verification):
@@ -136,7 +134,7 @@ Google Play Store အတွက်:
 - ကတ်ပြန်ဖြုတ်နည်း (Unlink card): Account > My Credit/Debit cards > Edit ကို နှိပ်ပြီး မိမိဖြုတ်လိုသော ကတ်ကို ဖယ်ရှားနိုင်ပါသည်။
 
 ၁၆။ ငွေဖြည့်သွင်းနည်းများ (Top up options):
-- ဘဏ်အကောင့်မှတစ်ဆင့်: K Plus နှင့် ချိတ်ဆက်ခြင်း، ATM (ဥပမာ - Kasikorn ATM တွင် Company ID 95004 ကို သုံး၍ ဖြည့်နိုင်သည်)၊ Internet Banking တို့ဖြင့် ဖြည့်နိုင်ပါသည်။
+- ဘဏ်အကောင့်မှတစ်ဆင့်: K Plus နှင့် ချိတ်ဆက်ခြင်း၊ ATM (ဥပမာ - Kasikorn ATM တွင် Company ID 95004 ကို သုံး၍ ဖြည့်နိုင်သည်)၊ Internet Banking တို့ဖြင့် ဖြည့်နိုင်ပါသည်။
 - ဆိုင်များတွင်: 7-Eleven, Family Mart, CP Fresh Mart, True Shop စသည့် ဆိုင်များတွင် ဖြည့်နိုင်ပါသည်။
 - Boonterm သို့မဟုတ် TrueMoney kiosk စက်များတွင်လည်း ဖြည့်နိုင်ပါသည်။
 
@@ -245,20 +243,7 @@ Referral Link: https://linktr.ee/paing_7
 မှတ်ချက် - အခက်အခဲရှိပါက TrueMoney Call Center 1240 ကို ခေါ်ဆိုပြီး နံပါတ် 4 ကို နှိပ်၍ မြန်မာစကားပြောဝန်ထမ်း Holiday မရှိဘဲ ဆက်သွယ်နိုင်ကြောင်း အမြဲထည့်ပြောပေးပါ ရှင့်။
 """
 
-@app.get("/")
-def index():
-    return {"message": "Bot Server is Live!"}
-
-@app.post("/webhook")
-async def webhook(request: Request):
-    try:
-        json_string = await request.body()
-        update = telebot.types.Update.de_json(json_string.decode('utf-8'))
-        bot.process_new_updates([update])
-    except Exception as e:
-        print(f"Webhook Error: {e}")
-    return {"status": "ok"}
-
+# 🤖 လူတစ်ယောက်က စာရိုက်လိုက်တိုင်း အလုပ်လုပ်မည့် Function
 @bot.message_handler(func=lambda message: True)
 def reply_to_user(message):
     try:
@@ -273,3 +258,13 @@ def reply_to_user(message):
         bot.reply_to(message, response.text)
     except Exception as e:
         bot.reply_to(message, f"Error: {str(e)}")
+
+# --- Run the bot ---
+if __name__ == "__main__":
+    print("Bot is starting (Polling mode)...")
+    # Remove any existing webhooks before polling
+    bot.remove_webhook()
+    time.sleep(1)
+    # Start polling
+    bot.infinity_polling()
+
