@@ -8,8 +8,8 @@ app = FastAPI()
 
 # --- ပြင်ဆင်ရန် (၁) ဤနေရာတွင် အစ်ကို့၏ Token အစစ်များကို အစားထိုးပါ ---
 # ဥပမာ - TOKEN = "8892263550:AAH..." စသဖြင့် " " မျက်တောင်ကွင်းထဲတွင် ထည့်ပါ။
-TOKEN = "သင့်_TELEGRAM_TOKEN_ဒီမှာထည့်ပါ"
-GEMINI_API_KEY = "သင့်_GEMINI_API_KEY_ဒီမှာထည့်ပါ"
+TOKEN = "8892263550:AAHjR-VqRAWjNj-SBSpTVhp79pEF2eCD7L0"
+GEMINI_API_KEY = "AQ.Ab8RN6K_BI_qBWwUS3MQQ8qyEMCpCEX9S5ZBE1JEat4HN478Qw"
 
 # Library များဆောက်ခြင်း
 bot = telebot.TeleBot(TOKEN)
