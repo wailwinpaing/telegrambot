@@ -2,18 +2,18 @@ import os
 from fastapi import FastAPI, Request
 import telebot
 from google import genai
-from google.genai import types # System Instruction အတွက် လိုအပ်သော Library
+from google.genai import types 
 
 app = FastAPI()
 
-# 🔑 Environment Variables မှ Token များယူခြင်း
-# မှတ်ချက် - မိမိ၏ Token အစစ်များကို Render ၏ Environment တွင်သာ ထည့်ပါ။ ကုဒ်ထဲတွင် အသေမရေးပါနှင့်။
-TOKEN = os.getenv("TELEGRAM_TOKEN")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+# --- ပြင်ဆင်ရန် (၁) ဤနေရာတွင် အစ်ကို့၏ Token အစစ်များကို အစားထိုးပါ ---
+# ဥပမာ - TOKEN = "8892263550:AAH..." စသဖြင့် " " မျက်တောင်ကွင်းထဲတွင် ထည့်ပါ။
+TOKEN = "သင့်_TELEGRAM_TOKEN_ဒီမှာထည့်ပါ"
+GEMINI_API_KEY = "သင့်_GEMINI_API_KEY_ဒီမှာထည့်ပါ"
 
 # Library များဆောက်ခြင်း
 bot = telebot.TeleBot(TOKEN)
-ai_client = genai.Client(api_key=GEMINI_API_KEY) 
+ai_client = genai.Client(api_key=GEMINI_API_KEY)
 
 # --- TrueMoney Data & AI Rules ---
 SYSTEM_INSTRUCTION = """
