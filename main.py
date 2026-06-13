@@ -7,7 +7,7 @@ app = FastAPI()
 
 # 🔑 Environment Variables မှ Token များယူခြင်း
 TOKEN = os.getenv("TELEGRAM_TOKEN", "8892263550:AAHjR-VqRAWjNj-SBSpTVhp79pEF2eCD7L0")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AQ.Ab8RN6IbLaPqRS6fqenJsWTuK8qEii4S6SJh065VbVKsMPpxSg")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AQ.Ab8RN6K_BI_qBWwUS3MQQ8qyEMCpCEX9S5ZBE1JEat4HN478Qw")
 
 # Library များဆောက်ခြင်း
 bot = telebot.TeleBot(TOKEN)
