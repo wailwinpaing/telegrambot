@@ -6,12 +6,11 @@ from google.genai import types
 
 app = FastAPI()
 
-# --- ပြင်ဆင်ရန် (၁) ဤနေရာတွင် အစ်ကို့၏ Token အစစ်များကို အစားထိုးပါ ---
-# ဥပမာ - TOKEN = "8892263550:AAH..." စသဖြင့် " " မျက်တောင်ကွင်းထဲတွင် ထည့်ပါ။
+# --- Tokens Pasted ---
 TOKEN = "8892263550:AAHjR-VqRAWjNj-SBSpTVhp79pEF2eCD7L0"
 GEMINI_API_KEY = "AQ.Ab8RN6K_BI_qBWwUS3MQQ8qyEMCpCEX9S5ZBE1JEat4HN478Qw"
 
-# Library များဆောက်ခြင်း
+# Library initialization
 bot = telebot.TeleBot(TOKEN)
 ai_client = genai.Client(api_key=GEMINI_API_KEY)
 
@@ -137,7 +136,7 @@ Google Play Store အတွက်:
 - ကတ်ပြန်ဖြုတ်နည်း (Unlink card): Account > My Credit/Debit cards > Edit ကို နှိပ်ပြီး မိမိဖြုတ်လိုသော ကတ်ကို ဖယ်ရှားနိုင်ပါသည်။
 
 ၁၆။ ငွေဖြည့်သွင်းနည်းများ (Top up options):
-- ဘဏ်အကောင့်မှတစ်ဆင့်: K Plus နှင့် ချိတ်ဆက်ခြင်း၊ ATM (ဥပမာ - Kasikorn ATM တွင် Company ID 95004 ကို သုံး၍ ဖြည့်နိုင်သည်)၊ Internet Banking တို့ဖြင့် ဖြည့်နိုင်ပါသည်။
+- ဘဏ်အကောင့်မှတစ်ဆင့်: K Plus နှင့် ချိတ်ဆက်ခြင်း، ATM (ဥပမာ - Kasikorn ATM တွင် Company ID 95004 ကို သုံး၍ ဖြည့်နိုင်သည်)၊ Internet Banking တို့ဖြင့် ဖြည့်နိုင်ပါသည်။
 - ဆိုင်များတွင်: 7-Eleven, Family Mart, CP Fresh Mart, True Shop စသည့် ဆိုင်များတွင် ဖြည့်နိုင်ပါသည်။
 - Boonterm သို့မဟုတ် TrueMoney kiosk စက်များတွင်လည်း ဖြည့်နိုင်ပါသည်။
 
@@ -250,27 +249,27 @@ Referral Link: https://linktr.ee/paing_7
 def index():
     return {"message": "Bot Server is Live!"}
 
-# 📩 Telegram က ပို့သမျှ Update များကို လက်ခံမည့်နေရာ
 @app.post("/webhook")
 async def webhook(request: Request):
-    json_string = await request.body()
-    update = telebot.types.Update.de_json(json_string.decode('utf-8'))
-    bot.process_new_updates([update])
+    try:
+        json_string = await request.body()
+        update = telebot.types.Update.de_json(json_string.decode('utf-8'))
+        bot.process_new_updates([update])
+    except Exception as e:
+        print(f"Webhook Error: {e}")
     return {"status": "ok"}
 
-# 🤖 လူတစ်ယောက်က စာရိုက်လိုက်တိုင်း အလုပ်လုပ်မည့် Function
 @bot.message_handler(func=lambda message: True)
 def reply_to_user(message):
     try:
-        # Gemini AI သို့ System Instruction အမှန်ဖြင့် ပို့ခြင်း
+        # Fixed model name to gemini-2.0-flash
         response = ai_client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-2.0-flash',
             contents=message.text,
             config=types.GenerateContentConfig(
                 system_instruction=SYSTEM_INSTRUCTION
             )
         )
-        # လူဆီ စာပြန်ပို့ခြင်း
         bot.reply_to(message, response.text)
     except Exception as e:
-        bot.reply_to(message, f"Error တစ်ခုတက်သွားပါတယ်ဗျာ- {str(e)}")
+        bot.reply_to(message, f"Error: {str(e)}")
