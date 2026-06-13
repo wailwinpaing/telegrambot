@@ -1,6 +1,4 @@
 fastapi
 uvicorn
-requests
-pymongo
-pillow
-google-generativeai
+pyTelegramBotAPI
+google-genai
