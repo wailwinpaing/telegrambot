@@ -2,16 +2,18 @@ import os
 from fastapi import FastAPI, Request
 import telebot
 from google import genai
+from google.genai import types # System Instruction အတွက် လိုအပ်သော Library
 
 app = FastAPI()
 
 # 🔑 Environment Variables မှ Token များယူခြင်း
-TOKEN = os.getenv("TELEGRAM_TOKEN", "8892263550:AAHjR-VqRAWjNj-SBSpTVhp79pEF2eCD7L0")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AQ.Ab8RN6K_BI_qBWwUS3MQQ8qyEMCpCEX9S5ZBE1JEat4HN478Qw")
+# မှတ်ချက် - မိမိ၏ Token အစစ်များကို Render ၏ Environment တွင်သာ ထည့်ပါ။ ကုဒ်ထဲတွင် အသေမရေးပါနှင့်။
+TOKEN = os.getenv("TELEGRAM_TOKEN")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # Library များဆောက်ခြင်း
 bot = telebot.TeleBot(TOKEN)
-ai_client = genai.Client(api_key=GEMINI_API_KEY) # Gemini SDK အသစ်စနစ်
+ai_client = genai.Client(api_key=GEMINI_API_KEY) 
 
 # --- TrueMoney Data & AI Rules ---
 SYSTEM_INSTRUCTION = """
@@ -179,7 +181,7 @@ Google Play Store အတွက်:
 ၅။ ငွေပမာဏ (အနည်းဆုံး ၁ ဘတ်) ကို ရိုက်ထည့်ပါ။
 ၆။ စည်းကမ်းချက်များကို သဘောတူပြီး “Transfer to Bank” ကို နှိပ်ပါ။
 ၇။ 6-digit PIN ကို ရိုက်ထည့်ပါ။
-မှတ်ချက် - ဝန်ဆောင်ခ ၂၀ ဘတ် ကျသင့်မည်ဖြစ်ပြီး ပုံမှန်အားဖြင့် ၂ နာရီအတွင်း ငွေဝင်ပါမည်။ ဘဏ်အကောင့်ပိုင်ရှင်အမည်ကို ကြိုတင်ပြသနိုင်ခြင်းမရှိသောကြောင့် အကောင့်နံပါတ်ကို သေჩာစစ်ဆေးပါ။
+မှတ်ချက် - ဝန်ဆောင်ခ ၂၀ ဘတ် ကျသင့်မည်ဖြစ်ပြီး ပုံမှန်အားဖြင့် ၂ နာရီအတွင်း ငွေဝင်ပါမည်။ ဘဏ်အကောင့်ပိုင်ရှင်အမည်ကို ကြိုတင်ပြသနိုင်ခြင်းမရှိသောကြောင့် အကောင့်နံပါတ်ကို သေချာစစ်ဆေးပါ။
 
 ၂၃။ နိုင်ငံတကာ ငွေလွှဲခြင်း (Overseas Transfer):
 - TrueMoney သည် မြန်မာ၊ တရုတ် အပါအဝင် နိုင်ငံပေါင်း ၄၄ နိုင်ငံသို့ ငွေလွှဲနိုင်ပါသည်။
@@ -212,7 +214,7 @@ Google Play Store အတွက်:
 
 ၂၇။ အကောင့်နှင့် ပရိုဖိုင် စီမံခန့်ခွဲခြင်း (Account & Profile):
 - ငွေလွှဲမှတ်တမ်းကြည့်ရန် (Transaction History): Bottom menu ရှိ “History” တွင် လွန်ခဲ့သော ၃ လအထိ မှတ်တမ်းများကို ကြည့်ရှုနိုင်ပါသည်။
-- ဖုန်းနံပါတ် ပြောင်းလဲခြင်း: လက်ရှိအကောင့်ကို ပိတ်ပြီး နံပါတ်အသစ်ဖြင့် ပြလည်မှတ်ပုံတင်ရပါမည်။ အကောင့်မပိတ်မီ ငွေလက်ကျန်အားလုံးကို အကုန်သုံးထားရန် လိုအပ်ပါသည်။ (အကူအညီအတွက် 1240 ကို ဆက်သွယ်ပါ)
+- ဖုန်းနံပါတ် ပြောင်းလဲခြင်း: လက်ရှိအကောင့်ကို ပိတ်ပြီး နံပါတ်အသစ်ဖြင့် ပြန်လည်မှတ်ပုံတင်ရပါမည်။ အကောင့်မပိတ်မီ ငွေလက်ကျန်အားလုံးကို အကုန်သုံးထားရန် လိုအပ်ပါသည်။ (အကူအညီအတွက် 1240 ကို ဆက်သွယ်ပါ)
 - အီးမေးလ် ပြောင်းလဲခြင်း: Call Center 1240 သို့ ဆက်သွယ်ပါ။
 - ပရိုဖိုင်ပုံ ပြောင်းခြင်း: Account > ထိပ်ရှိ Profile Icon > ဓာတ်ပုံရိုက်ရန် သို့မဟုတ် Library မှ ရွေးချယ်ရန်။
 - အကောင့်ပိတ်ခြင်း (Close Account): နိုင်ငံခြားသားများအတွက် အကောင့်ပိတ်လိုပါက Call Center 1240 သို့ ဆက်သွယ်ရပါမည်။
@@ -260,11 +262,13 @@ async def webhook(request: Request):
 @bot.message_handler(func=lambda message: True)
 def reply_to_user(message):
     try:
-        # Gemini AI ဆီက အဖြေတောင်းခြင်း (System Instruction ထည့်သွင်းထားသည်)
+        # Gemini AI သို့ System Instruction အမှန်ဖြင့် ပို့ခြင်း
         response = ai_client.models.generate_content(
             model='gemini-2.5-flash',
-            config={'system_instruction': SYSTEM_INSTRUCTION},
-            contents=message.text
+            contents=message.text,
+            config=types.GenerateContentConfig(
+                system_instruction=SYSTEM_INSTRUCTION
+            )
         )
         # လူဆီ စာပြန်ပို့ခြင်း
         bot.reply_to(message, response.text)
