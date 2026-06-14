@@ -254,9 +254,8 @@ Referral Link: https://linktr.ee/paing_7
 @bot.message_handler(func=lambda message: True)
 def reply_to_user(message):
     try:
-        # Fixed model name to gemini-2.0-flash
         response = ai_client.models.generate_content(
-            model='gemini-2.0-flash',
+            model='gemini-1.5-flash',  # <--- ဒီနေရာကို 'gemini-1.5-flash' လို့ ပြင်ပေးပါ
             contents=message.text,
             config=types.GenerateContentConfig(
                 system_instruction=SYSTEM_INSTRUCTION
@@ -264,13 +263,4 @@ def reply_to_user(message):
         )
         bot.reply_to(message, response.text)
     except Exception as e:
-        bot.reply_to(message, f"Error: {str(e)}")
-
-# --- Run the bot ---
-if __name__ == "__main__":
-    print("Bot is starting (Polling mode)...")
-    # Remove any existing webhooks before polling
-    bot.remove_webhook()
-    time.sleep(1)
-    # Start polling
-    bot.infinity_polling()
+        bot.reply_to(message, f"Error တက်နေပါတယ်ဗျာ: {str(e)}")
