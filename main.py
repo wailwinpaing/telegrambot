@@ -1,9 +1,19 @@
+
+
 import os
 import telebot
 from google import genai
 from google.genai import types
 import time
 
+# --- Tokens (Retrieved from Environment Variables) ---
+TOKEN = os.getenv("TELEGRAM_TOKEN")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+# Check if tokens are provided
+if not TOKEN or not GEMINI_API_KEY:
+    print("Error: Please set TELEGRAM_TOKEN and GEMINI_API_KEY environment variables.")
+    exit(1)
 
 # Library initialization
 bot = telebot.TeleBot(TOKEN)
@@ -104,7 +114,7 @@ SYSTEM_INSTRUCTION = """
 မှတ်ချက် - ထိုင်းဘဏ်များမှ ထုတ်ပေးထားသော ကတ်များကိုသာ ချိတ်ဆက်၍ ရပါမည်။ ကတ် (၃) ကတ်အထိ ချိတ်ဆက်နိုင်ပါသည်။
 
 ၁၂။ TrueMoney ကို မည်သည့်နေရာများတွင် အသုံးပြုနိုင်သလဲ?
-- 7-Eleven၊ လက်လီအရောင်းဆိုင်များ၊ စားသောက်ဆိုင်များ (ဥပမာ - KFC, McDonald's, MK, Burger King)။
+- 7-Eleven၊ လက်လီအရောင်းဆိုင်များ، စားသောက်ဆိုင်များ (ဥပမာ - KFC, McDonald's, MK, Burger King)။
 - ကုန်ပစ္စည်းအရောင်းစက်များ (Vending machines) နှင့် MRT (ရထားလိုင်း) များတွင်လည်း အသုံးပြုနိုင်ပါသည်။
 - Online shopping များ (ဥပမာ - Lazada, Shopee) နှင့် အခြားဝန်ဆောင်မှုများစွာတွင် အသုံးပြုနိုင်ပါသည်။
 
@@ -121,7 +131,7 @@ Google Play Store အတွက်:
 
 ၁၄။ ချိတ်ဆက်ထားသော Credit Card ဖြင့် ငွေပေးချေနည်း (Pay via Linked Card):
 ၁။ “Pay” (Barcode page) ကို နှိပ်ပါ။
-၂။ Wallet Balance မှ Credit/Debit Card သို့ ပြောင်းရန် “Change” ကို နှိပ်ပါ။
+၂။ Wallet Balance မှ Credit/Debit Card သသို့ ပြောင်းရန် “Change” ကို နှိပ်ပါ။
 ၃။ Barcode အောက်တွင် သင်အသုံးပြုမည့် ကတ်ကို တွေ့ရပါမည်။
 
 ၁၅။ ကတ်ချိတ်ဆက်ရာတွင် ဖြစ်လေ့ရှိသော ပြဿနာများနှင့် ကတ်ပြန်ဖြုတ်နည်း:
@@ -244,8 +254,9 @@ Referral Link: https://linktr.ee/paing_7
 @bot.message_handler(func=lambda message: True)
 def reply_to_user(message):
     try:
+        # Fixed model name to gemini-2.0-flash
         response = ai_client.models.generate_content(
-            model='gemini-1.5-flash',  # <--- ဒီနေရာကို 'gemini-1.5-flash' လို့ ပြင်ပေးပါ
+            model='gemini-2.0-flash',
             contents=message.text,
             config=types.GenerateContentConfig(
                 system_instruction=SYSTEM_INSTRUCTION
@@ -253,5 +264,13 @@ def reply_to_user(message):
         )
         bot.reply_to(message, response.text)
     except Exception as e:
-        bot.reply_to(message, f"Error တက်နေပါတယ်ဗျာ: {str(e)}")
+        bot.reply_to(message, f"Error: {str(e)}")
 
+# --- Run the bot ---
+if __name__ == "__main__":
+    print("Bot is starting (Polling mode)...")
+    # Remove any existing webhooks before polling
+    bot.remove_webhook()
+    time.sleep(1)
+    # Start polling
+    bot.infinity_polling()
