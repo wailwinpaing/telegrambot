@@ -38,6 +38,9 @@ SYSTEM_INSTRUCTION = """
 ၂။ စာကြောင်းတိုင်း၏ အဆုံးတွင် "ရှင့်" သို့မဟုတ် "ပါရှင်" ဟု ထည့်ပြောပေးပါ။ "ခင်ဗျာ" လုံးဝမသုံးရပါ။
 ၃။ စာကြောင်းအဆုံးတွင် ပုဒ်ဖြတ်ပုဒ်ရပ် (။) လုံးဝမသုံးရပါ။
 ၄။ '🤍' emoji ကို reply တစ်ခုလုံး၏ အဆုံးသတ် "ရှင့်" သို့မဟုတ် "ပါရှင်" ၏ နောက်တွင်သာ တစ်ကြိမ်တည်း ထည့်ပေးပါ ရှင့်။
+၅။ အသုံးပြုသူကို အမြဲတမ်း ယဉ်ကျေးပျူငှာစွာနှင့် စိတ်ရှည်စွာ ဖြေကြားပေးပါ။
+
+အချက်အလက် ၂၉ ချက် -
 
 ၁။ PIN Code ပြောင်းလဲခြင်း (Reset PIN):
 ၁. “Account” ကို နှိပ်ပါ။
@@ -225,6 +228,15 @@ Google Play Store အတွက်:
   - PEA (လျှပ်စစ်): ရပါသည်။
   - MEA (လျှပ်စစ်): ရက်ကျော်ပြီး ၅ ရက်အတွင်းဆိုလျှင် ပေးဆောင်နိုင်ပါသည်။
 
+၂၇။ အကောင့်နှင့် ပရိုဖိုင် စီမံခန့်ခွဲခြင်း (Account & Profile):
+- ငွေလွှဲမှတ်တမ်းကြည့်ရန် (Transaction History): Bottom menu ရှိ “History” တွင် လွန်ခဲ့သော ၃ လအထိ မှတ်တမ်းများကို ကြည့်ရှုနိုင်ပါသည်။
+- ဖုန်းနံပါတ် ပြောင်းလဲခြင်း: လက်ရှိအကောင့်ကို ပိတ်ပြီး နံပါတ်အသစ်ဖြင့် ပြလည်မှတ်ပုံတင်ရပါမည်။ အကောင့်မပိတ်မီ ငွေလက်ကျန်အားလုံးကို အကုန်သုံးထားရန် လိုအပ်ပါသည်။ (အကူအညီအတွက် 1240 ကို ဆက်သွယ်ပါ)
+- အီးမေးလ် ပြောင်းလဲခြင်း: Call Center 1240 သို့ ဆက်သွယ်ပါ။
+- ပရိုဖိုင်ပုံ ပြောင်းခြင်း: Account > ထိပ်ရှိ Profile Icon > ဓာတ်ပုံရိုက်ရန် သို့မဟုတ် Library မှ ရွေးချယ်ရန်။
+- အကောင့်ပိတ်ခြင်း (Close Account): နိုင်ငံခြားသားများအတွက် အကောင့်ပိတ်လိုပါက Call Center 1240 သို့ ဆက်သွယ်ရပါမည်။
+- ဘာသာစကား ပြောင်းလဲခြင်း: Account > Language > မိမိနှစ်သက်ရာ ဘာသာစကားကို ရွေးပါ။
+- Logout ထွက်ခြင်း: Account > Sign Out ကို နှိပ်ပါ။
+
 ၂၈။ လုံခြုံရေး (Security):
 - PIN6 သတ်မှတ်ခြင်း: မွေးနေ့၊ ဖုန်းနံပါတ်တို့နှင့် မသက်ဆိုင်သော ကျပန်းဂဏန်းများဖြင့် သတ်မှတ်ပါ။
 - 2-Factor Authentication (2FA): Login ဝင်ရန် PIN လိုအပ်သလို အခြားဝန်ဆောင်မှုများ သုံးစွဲရန်အတွက် OTP (One Time Password) လိုအပ်သောကြောင့် လုံခြုံမှုရှိပါသည်။
@@ -250,6 +262,9 @@ Referral Link: https://linktr.ee/paing_7
 မှတ်ချက် - အခက်အခဲရှိပါက TrueMoney Call Center 1240 ကို ခေါ်ဆိုပြီး နံပါတ် 4 ကို နှိပ်၍ မြန်မာစကားပြောဝန်ထမ်း Holiday မရှိဘဲ ဆက်သွယ်နိုင်ကြောင်း အမြဲထည့်ပြောပေးပါ ရှင့်။
 """
 
+# Set to track greeted users
+greeted_users = set()
+
 # --- Helper function to call DeepSeek API ---
 def get_deepseek_response(user_message):
     try:
@@ -269,9 +284,25 @@ def get_deepseek_response(user_message):
 # 🤖 Message handler
 @bot.message_handler(func=lambda message: True)
 def reply_to_user(message):
+    chat_id = message.chat.id
     try:
+        # Check if user is new for the greeting logic
+        is_new_user = chat_id not in greeted_users
+
+        # Get AI response
         response_text = get_deepseek_response(message.text)
-        bot.reply_to(message, response_text)
+
+        # Construct final message
+        if is_new_user:
+            greeted_users.add(chat_id)
+            final_message = (
+                "မင်္ဂလာပါရှင့် ဘာများကူညီပေးရမလဲရှင့် ကျွန်မကတော့ ကိုပိုင်ရဲ့ AI Assistant တစ်ယောက်ဖြစ်ပါတယ် သိလိုရာ အားလုံးကို မေးမြန်းနိုင်ပါတယ်ရှင့်🤍\n\n"
+                f"{response_text}"
+            )
+        else:
+            final_message = response_text
+
+        bot.reply_to(message, final_message)
     except Exception as e:
         bot.reply_to(message, f"Error: {str(e)}")
 
