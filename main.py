@@ -254,7 +254,7 @@ def reply_to_user(message):
     try:
         # Fixed model name to gemini-2.0-flash
         response = ai_client.models.generate_content(
-            model='gemini-2.0-flash',
+            model='gemini-2.0-flash-lite',
             contents=message.text,
             config=types.GenerateContentConfig(
                 system_instruction=SYSTEM_INSTRUCTION
