@@ -4,7 +4,9 @@ import telebot
 from openai import OpenAI
 import time
 from dotenv import load_dotenv
-
+import requests          # ← ဒီဟာ အသစ်ထည့်
+from PIL import Image    # ← ဒီဟာ အသစ်ထည့်
+import io                # ← ဒီဟာ အသစ်ထည့်             
 # Load environment variables from .env file
 load_dotenv()
 
@@ -280,7 +282,35 @@ def get_deepseek_response(user_message):
         return response.choices[0].message.content
     except Exception as e:
         return f"Error from DeepSeek API: {str(e)}"
+# ဒီနေရာမှာ ထည့်ပါ (deepseek_client အောက်မှာ)
+# --- NEW: Function to analyze image using DeepSeek Vision API ---
+def analyze_image_with_deepseek(image_url, user_question):
+    try:
+        response = deepseek_client.chat.completions.create(
+            model="deepseek-vl",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "image_url", "image_url": {"url": image_url}},
+                        {"type": "text", "text": f"ဒီပုံထဲက အကြောင်းအရာကို မြန်မာလို ရှင်းပြပါ။ မေးခွန်း: {user_question}"}
+                    ]
+                }
+            ],
+            temperature=0.7,
+            max_tokens=2048
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"ပုံကိုဖတ်ရာတွင် အမှားရှိနေပါတယ်: {str(e)}"
 
+def get_public_image_url(file_id):
+    try:
+        file_info = bot.get_file(file_id)
+        file_url = f"https://api.telegram.org/file/bot{TOKEN}/{file_info.file_path}"
+        return file_url
+    except Exception as e:
+        return None
 # 🤖 Message handler
 @bot.message_handler(func=lambda message: True)
 def reply_to_user(message):
@@ -305,7 +335,30 @@ def reply_to_user(message):
         bot.reply_to(message, final_message)
     except Exception as e:
         bot.reply_to(message, f"Error: {str(e)}")
-
+# reply_to_user function ပြီးရင် ဒီ handler အသစ်ကို ထည့်ပါ
+@bot.message_handler(content_types=['photo'])
+def handle_photo_message(message):
+    try:
+        photo = message.photo[-1]
+        file_id = photo.file_id
+        user_question = message.caption if message.caption else "ဒီပုံထဲမှာ ဘာတွေပါလဲ"
+        
+        processing_msg = bot.reply_to(message, "📸 ပုံကို ခွဲခြမ်းစိတ်ဖြာနေပါတယ် ခဏစောင့်ပါရှင့်...")
+        image_url = get_public_image_url(file_id)
+        
+        if image_url:
+            analysis_result = analyze_image_with_deepseek(image_url, user_question)
+            bot.send_message(
+                message.chat.id,
+                f"🖼️ **ပုံအကြောင်းအရာ**\n\n{analysis_result}\n\n🤍",
+                reply_to_message_id=message.message_id,
+                parse_mode='Markdown'
+            )
+            bot.delete_message(message.chat.id, processing_msg.message_id)
+        else:
+            bot.edit_message_text("❌ ပုံကို ဖတ်လို့မရပါဘူး", message.chat.id, processing_msg.message_id)
+    except Exception as e:
+        bot.reply_to(message, f"အမှား: {str(e)}")
 # --- Run the bot ---
 if __name__ == "__main__":
     print("Bot is starting with DeepSeek AI (Polling mode)...")
