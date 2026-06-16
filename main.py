@@ -9,21 +9,26 @@ from datetime import datetime
 from openai import OpenAI
 from dotenv import load_dotenv
 from apscheduler.schedulers.background import BackgroundScheduler
+from PIL import Image
 
-# Load environment variables
+# Load environment variables from .env file
 load_dotenv()
 
-# --- Tokens ---
+# --- Tokens (Retrieved from Environment Variables) ---
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
 # Check if tokens are provided
-if not TOKEN or not DEEPSEEK_API_KEY:
-    print("Error: TELEGRAM_TOKEN or DEEPSEEK_API_KEY not found in .env file")
+if not TOKEN:
+    print("Error: TELEGRAM_TOKEN not found in .env file")
+    exit(1)
+if not DEEPSEEK_API_KEY:
+    print("Error: DEEPSEEK_API_KEY not found in .env file")
     exit(1)
 
 # Library initialization
 bot = telebot.TeleBot(TOKEN)
+# DeepSeek client (OpenAI-compatible)
 deepseek_client = OpenAI(
     api_key=DEEPSEEK_API_KEY,
     base_url="https://api.deepseek.com"
@@ -77,7 +82,7 @@ def get_all_users():
     conn.close()
     return [u[0] for u in users]
 
-# ------------------ AI RULES & HELPERS ------------------
+# --- TrueMoney Data & AI Rules ---
 SYSTEM_INSTRUCTION = """
 သင်သည် ထိုင်းနိုင်ငံရှိ မြန်မာနိုင်ငံသားများကို TrueMoney Wallet အသုံးပြုပုံနှင့် ပတ်သက်၍ ကူညီပေးရမည့် အမျိုးသမီး အထောက်အပံ့ပေးသူ (Female Assistant) ဖြစ်သည်။
 အသုံးပြုသူများကို အောက်ပါအတိုင်း တိကျသော အဆင့်ဆင့်လမ်းညွှန်ချက်များဖြင့် မြန်မာဘာသာဖြင့် ယဉ်ကျေးပျူငှာစွာ ဖြေကြားပေးပါ -
@@ -89,9 +94,10 @@ SYSTEM_INSTRUCTION = """
 ၄။ '🤍' emoji ကို reply တစ်ခုလုံး၏ အဆုံးသတ် "ရှင့်" သို့မဟုတ် "ပါရှင်" ၏ နောက်တွင်သာ တစ်ကြိမ်တည်း ထည့်ပေးပါ ရှင့်။
 ၅။ အသုံးပြုသူကို အမြဲတမ်း ယဉ်ကျေးပျူငှာစွာနှင့် စိတ်ရှည်စွာ ဖြေကြားပေးပါ။
 
-(မှတ်ချက် - အသုံးပြုသူ၏ TrueMoney နှင့်ပတ်သက်သော မေးခွန်းများအားလုံးကို ဤအချက်အလက် ၂၉ ချက်ပေါ်မူတည်၍ ဖြေကြားပေးပါ)
+(မှတ်ချက် - TrueMoney နှင့်ပတ်သက်သော အချက်အလက် ၂၉ ချက်ကို အသုံးပြု၍ ဖြေကြားပေးပါ)
 """
 
+# --- Helper function to call DeepSeek API ---
 def get_deepseek_response(user_message):
     try:
         response = deepseek_client.chat.completions.create(
@@ -100,37 +106,53 @@ def get_deepseek_response(user_message):
                 {"role": "system", "content": SYSTEM_INSTRUCTION},
                 {"role": "user", "content": user_message}
             ],
-            temperature=0.7
+            temperature=0.7,
+            max_tokens=2048
         )
         return response.choices[0].message.content
     except Exception as e:
-        return f"Error: {str(e)}"
+        return f"Error from DeepSeek API: {str(e)}"
 
+# --- NEW: Function to analyze image using DeepSeek Vision API ---
+# Note: Ensure your DeepSeek API provider supports 'deepseek-vl' or 'deepseek-chat' with vision.
 def analyze_image_with_deepseek(image_url, user_question):
     try:
         response = deepseek_client.chat.completions.create(
-            model="deepseek-vl",
+            model="deepseek-vl", # Update model if necessary
             messages=[
                 {
                     "role": "user",
                     "content": [
                         {"type": "image_url", "image_url": {"url": image_url}},
-                        {"type": "text", "text": f"ဒီပုံထဲက အကြောင်းအရာကို မြန်မာလို ရှင်းပြပါ။ မေးခွန်း: {user_question}"}
+                        {"type": "text", "text": f"{user_question} (မြန်မာလို ဖြေပေးပါ)"}
                     ]
                 }
-            ]
+            ],
+            temperature=0.7,
+            max_tokens=2048
         )
         return response.choices[0].message.content
     except Exception as e:
         return f"ပုံကိုဖတ်ရာတွင် အမှားရှိနေပါတယ်: {str(e)}"
 
+def get_public_image_url(file_id):
+    try:
+        file_info = bot.get_file(file_id)
+        file_url = f"https://api.telegram.org/file/bot{TOKEN}/{file_info.file_path}"
+        return file_url
+    except Exception as e:
+        return None
+
 # ------------------ BOT HANDLERS ------------------
 
 @bot.message_handler(commands=['start'])
-def send_welcome(message):
+def handle_start(message):
+    chat_id = message.chat.id
     register_user(message.from_user.id, message.from_user.username, message.from_user.first_name, message.from_user.last_name)
     update_last_seen(message.from_user.id)
-    bot.reply_to(message, "မင်္ဂလာပါရှင့် ဘာများကူညီပေးရမလဲရှင့် ကျွန်မကတော့ ကိုပိုင်ရဲ့ AI Assistant တစ်ယောက်ဖြစ်ပါတယ် သိလိုရာ အားလုံးကို မေးမြန်းနိုင်ပါတယ်ရှင့်🤍")
+
+    welcome_msg = "မင်္ဂလာပါရှင့် ဘာများကူညီပေးရမလဲရှင့် ကျွန်မကတော့ ကိုပိုင်ရဲ့ AI Assistant တစ်ယောက်ဖြစ်ပါတယ် သိလိုရာ အားလုံးကို မေးမြန်းနိုင်ပါတယ်ရှင့်🤍"
+    bot.reply_to(message, welcome_msg)
 
 @bot.message_handler(content_types=['photo'])
 def handle_photo(message):
@@ -139,25 +161,33 @@ def handle_photo(message):
         update_last_seen(message.from_user.id)
 
         photo = message.photo[-1]
-        file_info = bot.get_file(photo.file_id)
-        file_url = f"https://api.telegram.org/file/bot{TOKEN}/{file_info.file_path}"
-        
+        file_id = photo.file_id
         user_question = message.caption if message.caption else "ဒီပုံထဲမှာ ဘာတွေပါလဲ"
+
         processing_msg = bot.reply_to(message, "📸 ပုံကို ခွဲခြမ်းစိတ်ဖြာနေပါတယ် ခဏစောင့်ပါရှင့်...")
-        
-        analysis_result = analyze_image_with_deepseek(file_url, user_question)
-        
-        bot.send_message(message.chat.id, f"🖼️ **ပုံအဖြေ**\n\n{analysis_result}\n\n🤍", parse_mode='Markdown')
-        bot.delete_message(message.chat.id, processing_msg.message_id)
+        image_url = get_public_image_url(file_id)
+
+        if image_url:
+            analysis_result = analyze_image_with_deepseek(image_url, user_question)
+            bot.send_message(
+                message.chat.id,
+                f"🖼️ **ပုံအကြောင်းအရာ**\n\n{analysis_result}\n\n🤍",
+                reply_to_message_id=message.message_id,
+                parse_mode='Markdown'
+            )
+            bot.delete_message(message.chat.id, processing_msg.message_id)
+        else:
+            bot.edit_message_text("❌ ပုံကို ဖတ်လို့မရပါဘူး", message.chat.id, processing_msg.message_id)
     except Exception as e:
         bot.reply_to(message, f"အမှား: {str(e)}")
 
 @bot.message_handler(func=lambda message: True)
-def handle_text(message):
+def reply_to_user(message):
+    chat_id = message.chat.id
     try:
         register_user(message.from_user.id, message.from_user.username, message.from_user.first_name, message.from_user.last_name)
         update_last_seen(message.from_user.id)
-        
+
         response_text = get_deepseek_response(message.text)
         bot.reply_to(message, response_text)
     except Exception as e:
@@ -171,19 +201,20 @@ def send_daily_greeting_to_all():
     for uid in users:
         try:
             bot.send_message(uid, msg)
-        except:
-            continue
+            print(f"Sent greeting to {uid}")
+        except Exception as e:
+            print(f"Failed to send to {uid}: {e}")
 
-# ------------------ MAIN ENTRY ------------------
+# --- Run the bot ---
 if __name__ == "__main__":
     setup_database()
-    
-    # Scheduler Setup
+
+    # Scheduler Setup (နေ့စဉ် မနက် ၈ နာရီ)
     scheduler = BackgroundScheduler(timezone="Asia/Yangon")
     scheduler.add_job(send_daily_greeting_to_all, 'cron', hour=8, minute=0)
     scheduler.start()
-    
-    print("Bot is starting (Polling mode)...")
+
+    print("Bot is starting with DeepSeek AI (Polling mode)...")
     bot.remove_webhook()
     time.sleep(1)
     bot.infinity_polling()
