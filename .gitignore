@@ -1,0 +1,16 @@
+# Environment variables (လျှို့ဝှက်သော့များ)
+.env
+
+# Database files (အသုံးပြုသူဒေတာ)
+*.db
+*.sqlite3
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE specific
+.vscode/
+.idea/
+*.swp
