@@ -1,5 +1,7 @@
 pyTelegramBotAPI
 openai
+APScheduler
 python-dotenv
 pillow
 requests
+pytz
